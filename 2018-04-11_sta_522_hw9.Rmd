@@ -1,0 +1,88 @@
+---
+title: "Sta 522 HW9 (All good things must come to an end)"
+author: "Daniel Truver"
+date: "4/11/2018"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(dplyr)
+```
+
+#### (1) Full Factorial Simulation
+
+##### (a) Glimpse at the Data
+```{r, echo=FALSE}
+df = data.frame(
+  A = c(rep(1,32), rep(0,32)),
+  B = rep(c(rep(1,16), rep(0,16)), 2),
+  C = rep(c(rep(1,8), rep(0,8)), 4),
+  D = rep(c(rep(1,4), rep(0,4)), 8),
+  y = .1
+) 
+#set up a true mean value for cases that get no treatments at all
+trt0 = 10
+#set up true values for the main effects for 4 treatments
+trta = 2
+trtb = -1
+trtc = 4
+trtd = 3
+#set up true values for the effects for two-way interactions 
+trtab = 4
+trtac = -1
+trtad = 2
+trtbc = 6
+trtbd = -3
+trtcd = 2
+set.seed(2018)
+df = df %>%
+  mutate(y = trt0 + A*trta + B*trtb + C*trtc + D*trtd +
+           A*B*trtab + A*C*trtac + A*D*trtad + B*C*trtbc + B*D*trtbd + C*D*trtcd +
+           rnorm(64,mean = 0, sd = 0.2))
+df
+```
+
+##### (b) Regression
+
+```{r}
+model1b = lm(y ~ A + B + C + D + A:B + A:C + A:D + B:C + B:D + C:D,
+             data = df)
+obs_effects = data.frame(coef(model1b))
+true_effects = c(trt0, trta, trtb, trtc, trtd,
+                 trtab, trtac, trtad, trtbc, trtbd, trtcd)
+summary(model1b)
+```
+
+```{r, echo=FALSE}
+colnames(obs_effects) = "obs_effects"
+table1b = cbind(obs_effects, true_effects) %>%
+  mutate(absolute.diff = abs(obs_effects - true_effects)) %>%
+  mutate(signed.diff = obs_effects - true_effects)
+rownames(table1b) = c("control", rownames(obs_effects)[2:11])
+knitr::kable(table1b, col.names = c("Observed Effects", "True Effects", 
+                           "Absolute Difference", "Signed Difference"),
+             row.names = TRUE, digits = 3, caption = "Side by Side Comparison")
+```
+
+The estimates are reasonably close to the true population values. None wander more than 0.18 away from the true values. 
+
+##### (c) Explanation for the Media
+
+Suppose we have a unit that has been exposed to treatment `B` and treatment `C`. We want to know the effects of treatment `B` on the outcome for this unit. To find this, we add the effect of `B` (here -1.098) to the interaction effect (here 6.079). This sum gives us the total effect of `B` on a unit exposed to both `B` and `C`. We would go through a similar procedure to find the total effects of `C` on a unit exposed to both `B` and `C`. 
+
+##### (d) Higher Interactions
+
+```{r}
+model1d = lm(y~A*B*C*D, data = df)
+summary(model1d)
+```
+
+The two-way interactions and main effects are very close to the truth. The standard errors for higher order interaction terms are large compared to the estimated effects. We would conclude that interactions higher than two show no evidence of influencing the outcome. This is good since we generated the data and know that higher order interactions had no effect. 
+
+#### (2) Fractional Factorial Simulation
+
+```{r, echo=FALSE}
+df2 = df[c(61:64,13:16,21:24,25:28,37:40,41:44,49:52,1:4),]
+df2
+```
