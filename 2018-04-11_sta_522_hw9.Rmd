@@ -82,7 +82,93 @@ The two-way interactions and main effects are very close to the truth. The stand
 
 #### (2) Fractional Factorial Simulation
 
+##### (a) Printed Dataset
+
 ```{r, echo=FALSE}
 df2 = df[c(61:64,13:16,21:24,25:28,37:40,41:44,49:52,1:4),]
 df2
 ```
+
+##### (b) Something Goes Wrong
+
+```{r}
+model2b = lm(y ~ A + B + C + D + A:B + A:C + A:D + B:C + B:D + C:D,
+             data = df2)
+summary(model2b)
+```
+
+Yes, we confirm that something has gone wrong.
+
+##### (c) Confirming What Went Wrong
+
+```{r}
+model2c = lm(y ~ A + B + C + D + A:B + C:D,
+             data = df2)
+summary(model2c)
+```
+
+We can confirm that something has gone wrong again.
+
+##### (d) Other Things Go Wrong
+
+```{r}
+model2d = lm(y ~ A+B+C+D + A:B + A:C + A:D,
+             data = df2)
+summary(model2d)
+```
+
+These interaction effects are very different from the true values and follow the pattern noted in the question. 
+
+```{r, echo=FALSE}
+obs_effects2 = data.frame(c(coef(model2d), rep(NA, 3)))
+rownames(obs_effects2) = rownames(obs_effects)
+true_effects = c(trt0, trta, trtb, trtc, trtd,
+                 trtab, trtac, trtad, trtbc, trtbd, trtcd)
+knitr::kable(cbind(obs_effects2, true_effects), col.names = c("Estimate", "Truth"),
+             row.names = TRUE, digits = 3)
+```
+
+#### (3) A New Truth
+
+##### (a) Simulation
+
+```{r}
+trtbc = 0
+trtbd = 0
+trtcd = 0
+df3 = df2 %>% 
+  mutate(y = trt0 + A*trta + B*trtb + C*trtc + D*trtd +
+           A*B*trtab + A*C*trtac + A*D*trtad + B*C*trtbc + B*D*trtbd + C*D*trtcd +
+           rnorm(32,mean = 0, sd = 0.2))
+df3
+```
+
+##### (b) Model Fit
+
+```{r}
+model3b = lm(y ~ A + B + C + D + A:B + A:C + A:D + B:C + B:D + C:D,
+             data = df3)
+summary(model3b)
+```
+
+Yep, still can't fit those other interactions.
+
+##### (c) Just the Good Ones
+
+```{r}
+model3c = lm(y ~ A+B+C+D + A:B + A:C + A:D,
+             data = df3)
+summary(model3c)
+```
+
+```{r, echo=FALSE}
+obs_effects3 = data.frame(c(coef(model3c), rep(NA, 3)))
+true_effects3 = c(trt0, trta, trtb, trtc, trtd,
+                  trtab, trtac, trtad, trtbc, trtbd, trtcd)
+rownames(obs_effects3) = rownames(obs_effects)
+table3c = cbind(obs_effects3, true_effects3) 
+knitr::kable(table3c, col.names = c("Estimate", "Truth"),
+             row.names = TRUE, caption = "Comparison")
+```
+
+Our estimates look much more in line with the truth here than they did in question 2.
